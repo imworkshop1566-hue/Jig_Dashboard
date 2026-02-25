@@ -9,18 +9,15 @@
 
 <style>
 * { box-sizing: border-box; }
-* {
-    caret-color: transparent;
-}
+* { caret-color: transparent; }
 
 body {
     margin: 0;
     font-family: 'Kanit', sans-serif;
-    background: #0b0f14; /* charcoal black */
+    background: #0b0f14;
     color: #cbd5e1;
 }
 
-/* Grid */
 .card-grid {
     display: grid;
     gap: 28px;
@@ -28,18 +25,15 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
-/* Card */
 .device-card {
-    background: #141a21; /* slate dark */
+    background: #141a21;
     border: 1px solid #1f2933;
     border-radius: 16px;
     padding: 28px;
     min-height: 220px;
-
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-
     transition: all 0.25s ease;
 }
 
@@ -48,56 +42,42 @@ body {
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
 }
 
-/* Offline */
 .device-card.offline {
     background: #1a1f26;
     border-color: #2a323c;
     opacity: 0.5;
 }
 
-/* Name */
 .jig-name {
     font-weight: 600;
-    color: #00d4ff; /* engineer cyan */
+    color: #00d4ff;
     margin-bottom: 20px;
     white-space: nowrap;
     letter-spacing: 0.5px;
 }
 
-/* Input - main focus */
-.input-row {
-    margin-bottom: 12px;
-}
+.input-row { margin-bottom: 12px; }
 
 .input-value {
     font-size: 38px;
     font-weight: 700;
-    color: #00f0ff; /* neon cyan */
+    color: #00f0ff;
     letter-spacing: 1px;
 }
 
-/* Total */
 .total-row {
     font-size: 18px;
     color: #94a3b8;
 }
 
-/* Timestamp */
 .last-update {
     font-size: 13px;
     color: #64748b;
     margin-top: 16px;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #0b0f14;
-}
-
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0b0f14; }
 ::-webkit-scrollbar-thumb {
     background: #1f2933;
     border-radius: 8px;
@@ -113,7 +93,7 @@ const apiUrl = "https://opensheet.elk.sh/1FhLvkCQ2o6ZdRAkx6vjysY9LwC3nQ3EETil7Yl
 
 let cardMap = new Map();
 
-/* ---------- Auto Scale Text ---------- */
+/* ---------- Auto Scale ---------- */
 function autoScaleText(element, maxSize = 28, minSize = 14) {
     let fontSize = maxSize;
     element.style.fontSize = fontSize + "px";
@@ -124,21 +104,21 @@ function autoScaleText(element, maxSize = 28, minSize = 14) {
     }
 }
 
-/* ---------- Resize Observer ---------- */
 const resizeObserver = new ResizeObserver(entries => {
     for (let entry of entries) {
         const nameEl = entry.target.querySelector(".jig-name");
-        if (nameEl) {
-            autoScaleText(nameEl, 28, 14);
-        }
+        if (nameEl) autoScaleText(nameEl);
     }
 });
 
-/* ---------- Offline Logic ---------- */
+/* ---------- Offline Check (Robust) ---------- */
 function isOffline(timestamp) {
-    const now = new Date();
-    const last = new Date(timestamp);
-    const diffMinutes = (now - last) / 1000 / 60;
+    if (!timestamp) return true;
+
+    const parsed = new Date(timestamp);
+    if (isNaN(parsed.getTime())) return true;
+
+    const diffMinutes = (Date.now() - parsed.getTime()) / 1000 / 60;
     return diffMinutes > 20;
 }
 
@@ -147,21 +127,25 @@ async function loadData() {
     const container = document.getElementById("cardContainer");
 
     try {
-        const response = await fetch(apiUrl);
+        const response = await fetch(apiUrl, { cache: "no-store" });
         const data = await response.json();
 
-        // Sort by Input desc
+        // Safe sort
         data.sort((a, b) => {
-            const diff = Number(b.count1) - Number(a.count1);
-            if (diff !== 0) return diff;
-            return new Date(b.Timestamp) - new Date(a.Timestamp);
+            const countDiff = (Number(b.count1) || 0) - (Number(a.count1) || 0);
+            if (countDiff !== 0) return countDiff;
+
+            const timeB = new Date(b.Timestamp).getTime() || 0;
+            const timeA = new Date(a.Timestamp).getTime() || 0;
+            return timeB - timeA;
         });
 
+        /* ===== CREATE / UPDATE ===== */
         data.forEach(item => {
             const id = item.device_id;
-            const input = item.count1;
-            const total = item.count2;
-            const timestamp = item.Timestamp;
+            const input = item.count1 ?? 0;
+            const total = item.count2 ?? 0;
+            const timestamp = item.Timestamp ?? "";
 
             let card = cardMap.get(id);
 
@@ -178,20 +162,16 @@ async function loadData() {
                         <div class="last-update"></div>
                     </div>
                 `;
-
                 container.appendChild(card);
                 cardMap.set(id, card);
                 resizeObserver.observe(card);
             }
 
-            const nameEl = card.querySelector(".jig-name");
-            nameEl.textContent = id;
-
+            card.querySelector(".jig-name").textContent = id;
             card.querySelector(".input-value").textContent = input;
             card.querySelector(".total-row").textContent = "Total: " + total;
             card.querySelector(".last-update").textContent = "Last update: " + timestamp;
 
-            // Offline state
             if (isOffline(timestamp)) {
                 card.classList.add("offline");
             } else {
@@ -199,14 +179,25 @@ async function loadData() {
             }
         });
 
-        // Reorder DOM without clearing
+        /* ===== REMOVE MISSING DEVICES ===== */
+        const currentIds = new Set(data.map(d => d.device_id));
+
+        cardMap.forEach((card, id) => {
+            if (!currentIds.has(id)) {
+                resizeObserver.unobserve(card);
+                card.remove();
+                cardMap.delete(id);
+            }
+        });
+
+        /* ===== REORDER DOM ===== */
         data.forEach(item => {
-            container.appendChild(cardMap.get(item.device_id));
+            const card = cardMap.get(item.device_id);
+            if (card) container.appendChild(card);
         });
 
     } catch (error) {
         console.error(error);
-        container.innerHTML = "Error loading data";
     }
 }
 
