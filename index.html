@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jig Dashboard</title>
+<title>PM Dashboard</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -77,7 +77,7 @@ body {
     min-height: 300px;
     display: grid;
     grid-template-rows: auto auto 1fr;
-    transition: all 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .device-card:hover {
@@ -153,7 +153,7 @@ body {
 <body>
 
 <div class="dashboard-header">
-    <div class="header-title">Dashboard</div>
+    <div class="header-title">PM Dashboard</div>
     <div class="header-stats">
         <span>Total: <strong id="totalCount">0</strong></span>
         <span>Online: <strong id="onlineCount">0</strong></span>
@@ -265,68 +265,74 @@ async function loadData() {
             return timeB - timeA;
         });
 
+        data.forEach(item => {
+
+            const id = item.device_id;
+            const count1 = Number(item.count1 ?? 0);
+            const total = Number(item.count2 ?? 0);
+            const timestamp = item.Timestamp ?? "";
+
+            let card = cardMap.get(id);
+
+            if (!card) {
+                card = document.createElement("div");
+                card.className = "device-card";
+                card.innerHTML = `
+                    <div class="jig-name"></div>
+                    <div class="count-section">
+                        <div class="input-value"></div>
+                        <div class="total-row"></div>
+                    </div>
+                    <div class="info-section">
+                        <div class="pm-row"></div>
+                        <div class="last-update"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+                cardMap.set(id, card);
+                resizeObserver.observe(card);
+            }
+
+            card.querySelector(".jig-name").textContent = id;
+            card.querySelector(".input-value").textContent = count1.toLocaleString();
+            card.querySelector(".total-row").textContent = "Total: " + total.toLocaleString();
+            card.querySelector(".last-update").textContent = "Last update: " + timestamp;
+
+            const pmRow = card.querySelector(".pm-row");
+
+            if (isPMZone(count1) && PM_RULES.length > 0) {
+                const list = getPMList(total);
+                pmRow.innerHTML = list.length > 0
+                    ? "🔧 ต้องเช็ค:<br>" + list.join("<br>")
+                    : "ยังไม่ถึงรอบ PM";
+            } else {
+                pmRow.textContent = "";
+            }
+
+            if (isOffline(timestamp)) {
+                card.classList.add("offline");
+                offlineCount++;
+            } else {
+                card.classList.remove("offline");
+                onlineCount++;
+            }
+
+        });
+
+        document.getElementById("totalCount").textContent = data.length;
+        document.getElementById("onlineCount").textContent = onlineCount;
+        document.getElementById("offlineCount").textContent = offlineCount;
+        document.getElementById("lastRefresh").textContent =
+            "Last refresh: " + new Date().toLocaleTimeString();
+
+        /* ===== REORDER DOM WITHOUT FLICKER ===== */
         requestAnimationFrame(() => {
-
+            const fragment = document.createDocumentFragment();
             data.forEach(item => {
-
-                const id = item.device_id;
-                const count1 = Number(item.count1 ?? 0);
-                const total = Number(item.count2 ?? 0);
-                const timestamp = item.Timestamp ?? "";
-
-                let card = cardMap.get(id);
-
-                if (!card) {
-                    card = document.createElement("div");
-                    card.className = "device-card";
-                    card.innerHTML = `
-                        <div class="jig-name"></div>
-                        <div class="count-section">
-                            <div class="input-value"></div>
-                            <div class="total-row"></div>
-                        </div>
-                        <div class="info-section">
-                            <div class="pm-row"></div>
-                            <div class="last-update"></div>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                    cardMap.set(id, card);
-                    resizeObserver.observe(card);
-                }
-
-                card.querySelector(".jig-name").textContent = id;
-                card.querySelector(".input-value").textContent = count1.toLocaleString();
-                card.querySelector(".total-row").textContent = "Total: " + total.toLocaleString();
-                card.querySelector(".last-update").textContent = "Last update: " + timestamp;
-
-                const pmRow = card.querySelector(".pm-row");
-
-                if (isPMZone(count1) && PM_RULES.length > 0) {
-                    const list = getPMList(total);
-                    pmRow.innerHTML = list.length > 0
-                        ? "🔧 ต้องเช็ค:<br>" + list.join("<br>")
-                        : "ยังไม่ถึงรอบ PM";
-                } else {
-                    pmRow.textContent = "";
-                }
-
-                if (isOffline(timestamp)) {
-                    card.classList.add("offline");
-                    offlineCount++;
-                } else {
-                    card.classList.remove("offline");
-                    onlineCount++;
-                }
-
+                const card = cardMap.get(item.device_id);
+                if (card) fragment.appendChild(card);
             });
-
-            document.getElementById("totalCount").textContent = data.length;
-            document.getElementById("onlineCount").textContent = onlineCount;
-            document.getElementById("offlineCount").textContent = offlineCount;
-            document.getElementById("lastRefresh").textContent =
-                "Last refresh: " + new Date().toLocaleTimeString();
-
+            container.appendChild(fragment);
         });
 
     } catch (error) {
@@ -347,4 +353,3 @@ init();
 </script>
 </body>
 </html>
-
