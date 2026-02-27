@@ -217,7 +217,7 @@ function isOffline(timestamp) {
 
 /* ---------- PM ZONE ---------- */
 function isPMZone(count1) {
-    return (count1 >= 1 && count1 <= 10) ||
+    return (count1 >= 0 && count1 <= 10) ||
            (count1 >= 19501 && count1 <= 20000);
 }
 
@@ -353,4 +353,5 @@ init();
 </script>
 </body>
 </html>
+
 
