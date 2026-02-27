@@ -18,6 +18,50 @@ body {
     color: #cbd5e1;
 }
 
+/* ===== HEADER ===== */
+.dashboard-header {
+    padding: 16px 28px;
+    border-bottom: 1px solid #1f2933;
+    background: #10151b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.header-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #00d4ff;
+}
+
+.header-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: #94a3b8;
+    flex-wrap: wrap;
+}
+
+.header-stats span strong {
+    color: #e2e8f0;
+}
+
+.last-refresh {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ===== LOADING ===== */
+.loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #00d4ff;
+}
+
+/* ===== GRID ===== */
 .card-grid {
     display: grid;
     gap: 28px;
@@ -32,7 +76,7 @@ body {
     padding: 24px;
     min-height: 300px;
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr;
     transition: all 0.25s ease;
 }
 
@@ -54,12 +98,15 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 6px;
 }
 
 .count-section {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    flex-direction: column;
     justify-content: center;
+    gap: 2px;
 }
 
 .input-value {
@@ -71,11 +118,11 @@ body {
 .info-section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    flex: 1;
 }
 
 .total-row {
-    font-size: 16px;
+    font-size: 14px;
     color: #94a3b8;
 }
 
@@ -83,12 +130,14 @@ body {
     font-size: 14px;
     line-height: 1.6;
     color: #ff5252;
-    min-height: 70px;
+    min-height: 50px;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
 
 .last-update {
+    margin-top: auto;
+    align-self: flex-end;
     font-size: 12px;
     color: #64748b;
 }
@@ -103,6 +152,18 @@ body {
 </head>
 <body>
 
+<div class="dashboard-header">
+    <div class="header-title">PM Dashboard</div>
+    <div class="header-stats">
+        <span>Total: <strong id="totalCount">0</strong></span>
+        <span>Online: <strong id="onlineCount">0</strong></span>
+        <span>Offline: <strong id="offlineCount">0</strong></span>
+        <span class="last-refresh" id="lastRefresh">Last refresh: -</span>
+    </div>
+</div>
+
+<div class="loading" id="loadingState">Loading devices...</div>
+
 <div class="card-grid" id="cardContainer"></div>
 
 <script>
@@ -112,6 +173,7 @@ const pmTopicUrl = "https://opensheet.elk.sh/1FhLvkCQ2o6ZdRAkx6vjysY9LwC3nQ3EETi
 
 let cardMap = new Map();
 let PM_RULES = [];
+let firstLoad = true;
 
 /* ---------- AUTO SCALE ---------- */
 function autoScaleText(element, maxSize = 26, minSize = 14) {
@@ -135,12 +197,10 @@ async function loadPMTopics() {
     try {
         const res = await fetch(pmTopicUrl, { cache: "no-store" });
         const data = await res.json();
-
         PM_RULES = data.map(row => ({
             name: row.Items,
             interval: Number(String(row.Cycles).replace(/,/g, ""))
         }));
-
     } catch (err) {
         console.error("PM Topic load error:", err);
     }
@@ -163,22 +223,16 @@ function isPMZone(count1) {
 
 /* ---------- PM CALCULATION ---------- */
 function getPMList(total) {
-
     const THRESHOLD = 1000;
     let list = [];
-
     PM_RULES.forEach(rule => {
-
         let cycle = Math.floor(total / rule.interval);
         let nextTarget = Math.ceil(total / rule.interval) * rule.interval;
         let remaining = nextTarget - total;
-
         if (cycle > 0 || remaining <= THRESHOLD) {
             list.push(rule.name);
         }
-
     });
-
     return list;
 }
 
@@ -186,89 +240,93 @@ function getPMList(total) {
 async function loadData() {
 
     const container = document.getElementById("cardContainer");
+    const loading = document.getElementById("loadingState");
 
     try {
+
+        if (firstLoad) loading.style.display = "block";
 
         const response = await fetch(apiUrl, { cache: "no-store" });
         const data = await response.json();
 
-        /* SAFE SORT */
+        if (firstLoad) {
+            loading.style.display = "none";
+            firstLoad = false;
+        }
+
+        let onlineCount = 0;
+        let offlineCount = 0;
+
         data.sort((a, b) => {
             const countDiff = (Number(b.count1) || 0) - (Number(a.count1) || 0);
             if (countDiff !== 0) return countDiff;
-
             const timeB = new Date(b.Timestamp).getTime() || 0;
             const timeA = new Date(a.Timestamp).getTime() || 0;
             return timeB - timeA;
         });
 
-        /* CREATE / UPDATE CARDS */
-        data.forEach(item => {
+        requestAnimationFrame(() => {
 
-            const id = item.device_id;
-            const count1 = Number(item.count1 ?? 0);
-            const total = Number(item.count2 ?? 0);
-            const timestamp = item.Timestamp ?? "";
+            data.forEach(item => {
 
-            let card = cardMap.get(id);
+                const id = item.device_id;
+                const count1 = Number(item.count1 ?? 0);
+                const total = Number(item.count2 ?? 0);
+                const timestamp = item.Timestamp ?? "";
 
-            if (!card) {
-                card = document.createElement("div");
-                card.className = "device-card";
-                card.innerHTML = `
-                    <div class="jig-name"></div>
-                    <div class="count-section">
-                        <div class="input-value"></div>
-                    </div>
-                    <div class="info-section">
-                        <div class="total-row"></div>
-                        <div class="pm-row"></div>
-                        <div class="last-update"></div>
-                    </div>
-                `;
-                container.appendChild(card);
-                cardMap.set(id, card);
-                resizeObserver.observe(card);
-            }
+                let card = cardMap.get(id);
 
-            card.querySelector(".jig-name").textContent = id;
-            card.querySelector(".input-value").textContent = count1.toLocaleString();
-            card.querySelector(".total-row").textContent = "Total: " + total.toLocaleString();
-            card.querySelector(".last-update").textContent = "Last update: " + timestamp;
+                if (!card) {
+                    card = document.createElement("div");
+                    card.className = "device-card";
+                    card.innerHTML = `
+                        <div class="jig-name"></div>
+                        <div class="count-section">
+                            <div class="input-value"></div>
+                            <div class="total-row"></div>
+                        </div>
+                        <div class="info-section">
+                            <div class="pm-row"></div>
+                            <div class="last-update"></div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                    cardMap.set(id, card);
+                    resizeObserver.observe(card);
+                }
 
-            const pmRow = card.querySelector(".pm-row");
+                card.querySelector(".jig-name").textContent = id;
+                card.querySelector(".input-value").textContent = count1.toLocaleString();
+                card.querySelector(".total-row").textContent = "Total: " + total.toLocaleString();
+                card.querySelector(".last-update").textContent = "Last update: " + timestamp;
 
-            if (isPMZone(count1) && PM_RULES.length > 0) {
-                const list = getPMList(total);
-                pmRow.innerHTML = list.length > 0
-                    ? "🔧 ต้องเช็ค:<br>" + list.join("<br>")
-                    : "ยังไม่ถึงรอบ PM";
-            } else {
-                pmRow.textContent = "";
-            }
+                const pmRow = card.querySelector(".pm-row");
 
-            if (isOffline(timestamp)) {
-                card.classList.add("offline");
-            } else {
-                card.classList.remove("offline");
-            }
+                if (isPMZone(count1) && PM_RULES.length > 0) {
+                    const list = getPMList(total);
+                    pmRow.innerHTML = list.length > 0
+                        ? "🔧 ต้องเช็ค:<br>" + list.join("<br>")
+                        : "ยังไม่ถึงรอบ PM";
+                } else {
+                    pmRow.textContent = "";
+                }
 
-        });
+                if (isOffline(timestamp)) {
+                    card.classList.add("offline");
+                    offlineCount++;
+                } else {
+                    card.classList.remove("offline");
+                    onlineCount++;
+                }
 
-        /* REMOVE MISSING DEVICES */
-        const currentIds = new Set(data.map(d => d.device_id));
-        cardMap.forEach((card, id) => {
-            if (!currentIds.has(id)) {
-                resizeObserver.unobserve(card);
-                card.remove();
-                cardMap.delete(id);
-            }
-        });
+            });
 
-        /* REORDER DOM */
-        data.forEach(item => {
-            const card = cardMap.get(item.device_id);
-            if (card) container.appendChild(card);
+            document.getElementById("totalCount").textContent = data.length;
+            document.getElementById("onlineCount").textContent = onlineCount;
+            document.getElementById("offlineCount").textContent = offlineCount;
+            document.getElementById("lastRefresh").textContent =
+                "Last refresh: " + new Date().toLocaleTimeString();
+
         });
 
     } catch (error) {
