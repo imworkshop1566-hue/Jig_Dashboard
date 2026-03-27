@@ -423,6 +423,7 @@ async function init() {
     await loadData();
     setInterval(loadData, 30000);
     setInterval(loadPMTopics, 60000);
+    setTimeout(() => location.reload(), 1800000);
 }
 
 init();
