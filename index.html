@@ -124,6 +124,10 @@ body::after {
     opacity: 0.35;
 }
 
+.device-card.online {
+    order: -1;
+}
+
 .jig-name {
     font-weight: 600;
     color: #38bdf8;
@@ -344,12 +348,6 @@ async function loadData() {
         const response = await fetch(apiUrl);
         const data = await response.json();
 
-        data.sort((a, b) => {
-            const diff = Number(b.count1) - Number(a.count1);
-            if (diff !== 0) return diff;
-            return new Date(b.Timestamp) - new Date(a.Timestamp);
-        });
-
         const totalCount = data.length;
         const onlineCount = data.filter(item => !isOffline(item.Timestamp)).length;
         const offlineCount = totalCount - onlineCount;
@@ -405,13 +403,11 @@ async function loadData() {
 
             if (isOffline(timestamp)) {
                 card.classList.add("offline");
+                card.classList.remove("online");
             } else {
                 card.classList.remove("offline");
+                card.classList.add("online");
             }
-        });
-
-        data.forEach(item => {
-            container.appendChild(cardMap.get(item.device_id));
         });
 
     } catch (error) {
@@ -421,7 +417,6 @@ async function loadData() {
 }
 
 loadData();
-setInterval(loadData, 30000);
 
 async function init() {
     await loadPMTopics();
