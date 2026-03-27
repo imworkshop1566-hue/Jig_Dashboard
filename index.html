@@ -8,177 +8,281 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 <style>
-* { box-sizing: border-box; }
-* { caret-color: transparent; }
+* { 
+    box-sizing: border-box; 
+    caret-color: transparent;
+}
 
 body {
     margin: 0;
+    min-height: 100vh;
     font-family: 'Kanit', sans-serif;
-    background: #0b0f14;
-    color: #cbd5e1;
-}
-
-/* ===== HEADER ===== */
-.dashboard-header {
-    padding: 16px 28px;
-    border-bottom: 1px solid #1f2933;
-    background: #10151b;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.header-title {
-    font-size: 22px;
-    font-weight: 600;
-    color: #00d4ff;
-}
-
-.header-stats {
-    display: flex;
-    gap: 20px;
-    font-size: 14px;
-    color: #94a3b8;
-    flex-wrap: wrap;
-}
-
-.header-stats span strong {
+    background: #0c0c10;
     color: #e2e8f0;
+    overflow-x: hidden;
 }
 
-.last-refresh {
-    font-size: 12px;
-    color: #64748b;
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* ===== LOADING ===== */
-.loading {
-    text-align: center;
-    padding: 40px;
-    font-size: 18px;
-    color: #00d4ff;
+body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle at 30% 20%, rgba(56, 189, 248, 0.2) 0%, transparent 35%),
+        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.18) 0%, transparent 35%),
+        radial-gradient(circle at 85% 15%, rgba(236, 72, 153, 0.12) 0%, transparent 30%),
+        radial-gradient(circle at 15% 75%, rgba(34, 211, 238, 0.15) 0%, transparent 30%);
+    animation: bgFloat 15s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* ===== GRID ===== */
+@keyframes bgFloat {
+    0% { 
+        transform: translate(0, 0) scale(1);
+    }
+    33% { 
+        transform: translate(5%, 3%) scale(1.05);
+    }
+    66% { 
+        transform: translate(-3%, 5%) scale(0.98);
+    }
+    100% { 
+        transform: translate(0, 0) scale(1);
+    }
+}
+
 .card-grid {
     display: grid;
-    gap: 28px;
-    padding: 28px;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 40px;
+    padding-bottom: 120px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    position: relative;
+    z-index: 1;
 }
 
 .device-card {
-    background: #141a21;
-    border: 1px solid #1f2933;
-    border-radius: 16px;
-    padding: 24px;
-    min-height: 300px;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    background: rgba(20, 20, 28, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 28px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    transition: all 0.3s ease;
+    animation: fadeSlideIn 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(20px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeSlideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .device-card:hover {
-    border-color: #00d4ff;
-    box-shadow: 0 0 20px rgba(0,212,255,0.15);
+    transform: translateY(-6px);
+    border-color: rgba(56, 189, 248, 0.3);
+    box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(56, 189, 248, 0.08),
+        inset 0 0 30px rgba(56, 189, 248, 0.02);
 }
 
 .device-card.offline {
-    background: #1a1f26;
-    border-color: #2a323c;
-    opacity: 0.5;
+    background: rgba(18, 18, 22, 0.9);
+    border-color: rgba(255, 255, 255, 0.03);
+}
+
+.device-card.offline .input-value,
+.device-card.offline .jig-name {
+    opacity: 0.35;
 }
 
 .jig-name {
     font-weight: 600;
-    color: #00d4ff;
-    text-align: center;
+    color: #38bdf8;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 6px;
 }
 
-.count-section {
-    display: flex;
-    align-items: flex-start;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
+.input-row {
+    margin-bottom: 8px;
 }
 
 .input-value {
     font-size: 42px;
     font-weight: 700;
-    color: #00f0ff;
-}
-
-.info-section {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
+    color: #f0f9ff;
+    letter-spacing: -1px;
+    transition: all 0.3s ease;
 }
 
 .total-row {
-    font-size: 14px;
-    color: #94a3b8;
+    font-size: 16px;
+    color: #71717a;
+}
+
+.total-row span {
+    color: #a1a1aa;
+    font-weight: 500;
 }
 
 .pm-row {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #ff5252;
-    min-height: 50px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #fb923c;
+    margin-top: 12px;
+    min-height: 20px;
 }
 
 .last-update {
-    margin-top: auto;
-    align-self: flex-end;
     font-size: 12px;
-    color: #64748b;
+    color: #52525b;
+    margin-top: 8px;
 }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #0b0f14; }
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-    background: #1f2933;
-    border-radius: 8px;
+    background: rgba(56, 189, 248, 0.25);
+    border-radius: 3px;
+}
+
+.navbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 32px;
+    background: rgba(20, 20, 28, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    border-radius: 50px;
+    gap: 40px;
+}
+
+.navbar-stats {
+    display: flex;
+    gap: 40px;
+}
+
+.navbar-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.navbar-stat-label {
+    font-size: 10px;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.navbar-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #38bdf8;
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+
+.navbar-stat-value.online {
+    color: #4ade80;
+    text-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+}
+
+.navbar-stat-value.offline {
+    color: #f87171;
+    text-shadow: 0 0 15px rgba(248, 113, 113, 0.4);
+}
+
+@media (max-width: 640px) {
+    .card-grid {
+        padding: 20px;
+        padding-bottom: 120px;
+        gap: 16px;
+    }
+    .device-card {
+        padding: 20px;
+        min-height: 180px;
+    }
+    .input-value {
+        font-size: 32px;
+    }
 }
 </style>
 </head>
 <body>
 
-<div class="dashboard-header">
-    <div class="header-title">Dashboard</div>
-    <div class="header-stats">
-        <span>Total: <strong id="totalCount">0</strong></span>
-        <span>Online: <strong id="onlineCount">0</strong></span>
-        <span>Offline: <strong id="offlineCount">0</strong></span>
-        <span class="last-refresh" id="lastRefresh">Last refresh: -</span>
+<nav class="navbar">
+    <div class="navbar-stats">
+        <div class="navbar-stat">
+            <span class="navbar-stat-value" id="totalCount">0</span>
+            <span class="navbar-stat-label">Total</span>
+        </div>
+        <div class="navbar-stat">
+            <span class="navbar-stat-value online" id="onlineCount">0</span>
+            <span class="navbar-stat-label">Online</span>
+        </div>
+        <div class="navbar-stat">
+            <span class="navbar-stat-value offline" id="offlineCount">0</span>
+            <span class="navbar-stat-label">Offline</span>
+        </div>
     </div>
-</div>
-
-<div class="loading" id="loadingState">Loading devices...</div>
+</nav>
 
 <div class="card-grid" id="cardContainer"></div>
 
 <script>
-
 const apiUrl = "https://opensheet.elk.sh/1FhLvkCQ2o6ZdRAkx6vjysY9LwC3nQ3EETil7YlKqYlA/DeviceStatus";
 const pmTopicUrl = "https://opensheet.elk.sh/1FhLvkCQ2o6ZdRAkx6vjysY9LwC3nQ3EETil7YlKqYlA/PMTopic";
 
 let cardMap = new Map();
 let PM_RULES = [];
-let firstLoad = true;
 
-/* ---------- AUTO SCALE ---------- */
-function autoScaleText(element, maxSize = 26, minSize = 14) {
+function autoScaleText(element, maxSize = 28, minSize = 14) {
     let fontSize = maxSize;
     element.style.fontSize = fontSize + "px";
+
     while (element.scrollWidth > element.offsetWidth && fontSize > minSize) {
         fontSize--;
         element.style.fontSize = fontSize + "px";
@@ -188,11 +292,19 @@ function autoScaleText(element, maxSize = 26, minSize = 14) {
 const resizeObserver = new ResizeObserver(entries => {
     for (let entry of entries) {
         const nameEl = entry.target.querySelector(".jig-name");
-        if (nameEl) autoScaleText(nameEl);
+        if (nameEl) {
+            autoScaleText(nameEl, 28, 14);
+        }
     }
 });
 
-/* ---------- LOAD PM TOPIC ---------- */
+function isOffline(timestamp) {
+    const now = new Date();
+    const last = new Date(timestamp);
+    const diffMinutes = (now - last) / 1000 / 60;
+    return diffMinutes > 20;
+}
+
 async function loadPMTopics() {
     try {
         const res = await fetch(pmTopicUrl, { cache: "no-store" });
@@ -206,22 +318,11 @@ async function loadPMTopics() {
     }
 }
 
-/* ---------- OFFLINE CHECK ---------- */
-function isOffline(timestamp) {
-    if (!timestamp) return true;
-    const parsed = new Date(timestamp);
-    if (isNaN(parsed.getTime())) return true;
-    const diffMinutes = (Date.now() - parsed.getTime()) / 1000 / 60;
-    return diffMinutes > 20;
-}
-
-/* ---------- PM ZONE ---------- */
 function isPMZone(count1) {
     return (count1 >= 0 && count1 <= 10) ||
            (count1 >= 19501 && count1 <= 20000);
 }
 
-/* ---------- PM CALCULATION ---------- */
 function getPMList(total) {
     const THRESHOLD = 1000;
     let list = [];
@@ -236,41 +337,32 @@ function getPMList(total) {
     return list;
 }
 
-/* ---------- LOAD DEVICE DATA ---------- */
 async function loadData() {
-
     const container = document.getElementById("cardContainer");
-    const loading = document.getElementById("loadingState");
 
     try {
-
-        if (firstLoad) loading.style.display = "block";
-
-        const response = await fetch(apiUrl, { cache: "no-store" });
+        const response = await fetch(apiUrl);
         const data = await response.json();
 
-        if (firstLoad) {
-            loading.style.display = "none";
-            firstLoad = false;
-        }
-
-        let onlineCount = 0;
-        let offlineCount = 0;
-
         data.sort((a, b) => {
-            const countDiff = (Number(b.count1) || 0) - (Number(a.count1) || 0);
-            if (countDiff !== 0) return countDiff;
-            const timeB = new Date(b.Timestamp).getTime() || 0;
-            const timeA = new Date(a.Timestamp).getTime() || 0;
-            return timeB - timeA;
+            const diff = Number(b.count1) - Number(a.count1);
+            if (diff !== 0) return diff;
+            return new Date(b.Timestamp) - new Date(a.Timestamp);
         });
 
-        data.forEach(item => {
+        const totalCount = data.length;
+        const onlineCount = data.filter(item => !isOffline(item.Timestamp)).length;
+        const offlineCount = totalCount - onlineCount;
+        
+        document.getElementById("totalCount").textContent = totalCount;
+        document.getElementById("onlineCount").textContent = onlineCount;
+        document.getElementById("offlineCount").textContent = offlineCount;
 
+        data.forEach(item => {
             const id = item.device_id;
-            const count1 = Number(item.count1 ?? 0);
-            const total = Number(item.count2 ?? 0);
-            const timestamp = item.Timestamp ?? "";
+            const input = item.count1;
+            const total = item.count2;
+            const timestamp = item.Timestamp;
 
             let card = cardMap.get(id);
 
@@ -279,28 +371,30 @@ async function loadData() {
                 card.className = "device-card";
                 card.innerHTML = `
                     <div class="jig-name"></div>
-                    <div class="count-section">
-                        <div class="input-value"></div>
+                    <div>
+                        <div class="input-row">
+                            <span class="input-value"></span>
+                        </div>
                         <div class="total-row"></div>
-                    </div>
-                    <div class="info-section">
                         <div class="pm-row"></div>
                         <div class="last-update"></div>
                     </div>
                 `;
+
                 container.appendChild(card);
                 cardMap.set(id, card);
                 resizeObserver.observe(card);
             }
 
-            card.querySelector(".jig-name").textContent = id;
-            card.querySelector(".input-value").textContent = count1.toLocaleString();
-            card.querySelector(".total-row").textContent = "Total: " + total.toLocaleString();
+            const nameEl = card.querySelector(".jig-name");
+            nameEl.textContent = id;
+
+            card.querySelector(".input-value").textContent = input;
+            card.querySelector(".total-row").textContent = "Total: " + total;
             card.querySelector(".last-update").textContent = "Last update: " + timestamp;
 
             const pmRow = card.querySelector(".pm-row");
-
-            if (isPMZone(count1) && PM_RULES.length > 0) {
+            if (isPMZone(input) && PM_RULES.length > 0) {
                 const list = getPMList(total);
                 pmRow.innerHTML = list.length > 0
                     ? "🔧 ต้องเช็ค:<br>" + list.join("<br>")
@@ -311,36 +405,24 @@ async function loadData() {
 
             if (isOffline(timestamp)) {
                 card.classList.add("offline");
-                offlineCount++;
             } else {
                 card.classList.remove("offline");
-                onlineCount++;
             }
-
         });
 
-        document.getElementById("totalCount").textContent = data.length;
-        document.getElementById("onlineCount").textContent = onlineCount;
-        document.getElementById("offlineCount").textContent = offlineCount;
-        document.getElementById("lastRefresh").textContent =
-            "Last refresh: " + new Date().toLocaleTimeString();
-
-        /* ===== REORDER DOM WITHOUT FLICKER ===== */
-        requestAnimationFrame(() => {
-            const fragment = document.createDocumentFragment();
-            data.forEach(item => {
-                const card = cardMap.get(item.device_id);
-                if (card) fragment.appendChild(card);
-            });
-            container.appendChild(fragment);
+        data.forEach(item => {
+            container.appendChild(cardMap.get(item.device_id));
         });
 
     } catch (error) {
-        console.error("Device load error:", error);
+        console.error(error);
+        container.innerHTML = "Error loading data";
     }
 }
 
-/* ---------- INIT ---------- */
+loadData();
+setInterval(loadData, 30000);
+
 async function init() {
     await loadPMTopics();
     await loadData();
@@ -349,9 +431,7 @@ async function init() {
 }
 
 init();
-
 </script>
+
 </body>
 </html>
-
-
